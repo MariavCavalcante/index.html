@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Acompanhamento de Projeto - PDSA SES-GO</title>
+    <style>
+        :root {
+            --primary-blue: #003366;
+            --secondary-blue: #00509F;
+            --accent-green: #19A32A;
+            --bg-gray: #F4F6F9;
+            --card-white: #FFFFFF;
+            --text-dark: #2C3E50;
+            --border-color: #E2E8F0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-gray); color: var(--text-dark); padding: 20px; }
+        header {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 { font-size: 1.5rem; font-weight: 600; }
+        .badge-gov { background-color: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
+        .filter-panel {
+            background: var(--card-white);
+            padding: 18px 24px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-group label { font-size: 0.85rem; font-weight: 600; color: var(--primary-blue); }
+        select {
+            padding: 8px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+        #project-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .pdsa-card {
+            background: var(--card-white);
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-top: 5px solid;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-header {
+            padding: 15px;
+            background-color: #f9fafb;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .card-header h2 {
+            font-size: 1.1rem;
+            color: var(--primary-blue);
+        }
+        .card-header .month-tag {
+            font-size: 0.8rem;
+            color: #667;
+            margin-top: 4px;
+        }
+        .card-body { padding: 15px; flex-grow: 1; }
+        .card-section { margin-bottom: 15px; }
+        .card-section h3 {
+            font-size: 0.9rem;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--bg-gray);
+            padding-bottom: 5px;
+            margin-bottom: 8px;
+        }
+        .card-section p, .card-section li {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-dark);
+        }
+        .card-section ul {
+            list-style-position: inside;
+            padding-left: 5px;
+        }
+        /* Color coding for PDSA phases */
+        .pdsa-card[data-phase*="PLAN"] { border-color: #3B82F6; } /* Blue */
+        .pdsa-card[data-phase*="DO"] { border-color: #F59E0B; }   /* Amber */
+        .pdsa-card[data-phase*="STUDY"] { border-color: #10B981; } /* Emerald */
+        .pdsa-card[data-phase*="ACT"] { border-color: #EF4444; }   /* Red */
+        .no-results {
+            background: var(--card-white);
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.1rem;
+            color: #778;
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Acompanhamento de Projeto de Melhoria (PDSA)</h1>
+        <div class="badge-gov">SES-GO</div>
+    </header>
+
+    <section class="filter-panel">
+        <div class="filter-group">
+            <label for="monthFilter">Filtrar por Mês:</label>
+            <select id="monthFilter" onchange="filterCards()">
+                <option value="ALL">Todos os Meses</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="phaseFilter">Filtrar por Fase do PDSA:</label>
+            <select id="phaseFilter" onchange="filterCards()">
+                <option value="ALL">Todas as Fases</option>
+            </select>
+        </div>
+    </section>
+
+    <main id="project-board">
+        <!-- Cards serão inseridos aqui pelo JavaScript -->
+    </main>
+
+    <script>
+        const projectData = [
+            { "MÊS": "janeiro 2026", "FASE": "PLAN - PLANEJAR", "ETAPAS IMPORTANTES": "- Avaliação sistemática das fichas de regulação\n- Definição de critérios mínimos de qualidade da ficha", "PONTOS CHAVE": "- Garantir informações clínicas essenciais para decisão regulatória segura\n- Reduzir retrabalho, pendências e tempo de resposta", "PLANEJAMENTO": "Avaliar se consta na ficha de regulação, de forma completa e legível:\n- História clínica completa\n- Início dos sintomas (data e hora)\n- Caracterização da dor torácica\n- Exame físico cardiovascular\n- Saturação de O₂\n- Pressão arterial\n- Frequência cardíaca\n- Enzimas cardíacas\n- Enzimas cardíacas seriadas\n- ECG anexado ou laudo descrito\n- ECG com data e hora\n- Justificativa clínica para regulação\n- Evolução clínica diária atualizada" },
+            { "MÊS": "janeiro 2026", "FASE": "DO - FAZER", "ETAPAS IMPORTANTES": "- Aplicação do checklist nas fichas analisadas (planilha de monitoramento da qualidade da ficha)\n- Registro padronizado das pendências identificadas", "PONTOS CHAVE": "- Analisar amostra definida, encaminhar documento Oficial para unidade piloto. \n- Classificar as fichas em: conforme e não conforme\n", "PLANEJAMENTO": "- Utilizar checklist único para todos os analistas\n- Registrar os campos ausentes por tipo de falha\n-  Comunicar pendências às unidades solicitantes quando aplicável" },
+            { "MÊS": "janeiro 2026", "FASE": "STUDY - ANALISAR", "ETAPAS IMPORTANTES": "- Consolidação dos dados coletados\n- Análise dos padrões de falha", "PONTOS CHAVE": "- Identificar os campos mais frequentemente ausentes\n- Avaliar impacto das falhas no tempo de liberação da vaga\n- Comparar resultado com a meta definida", "PLANEJAMENTO": "- Percentual de fichas completas x incompletas\n- Principais gargalos (ex.: ausência de ECG com data/hora, início dos sintomas não informado)\n- Tendência de melhoria ou piora ao longo do período" },
+            { "MÊS": "janeiro 2026", "FASE": "ACT - AGIR", "ETAPAS IMPORTANTES": "- Definição de ações corretivas\n- Padronização das melhorias", "PONTOS CHAVE": "- Corrigir causas raiz das falhas\n- Sustentar o ganho de qualidade", "PLANEJAMENTO": "- Reforçar orientação técnica às unidades solicitantes\n- Padronizar modelo de preenchimento da ficha\n- Devolver feedback estruturado às equipes\n- Atualizar protocolos e fluxos regulatórios, se necessário\n- Iniciar novo ciclo PDSA com foco nos campos mais críticos" },
+            { "MÊS": "fevereiro 2026", "FASE": "PLAN - PLANEJAR", "ETAPAS IMPORTANTES": "Definição dos campos críticos identificados no ciclo anterior; elaboração de intervenção direcionada à unidade piloto; manutenção do monitoramento da qualidade das fichas", "PONTOS CHAVE": "Atuar sobre as principais falhas de preenchimento; melhorar a qualidade da informação clínica; reduzir pendências e retrabalho", "PLANEJAMENTO": "Selecionar os itens com maior frequência de não conformidade em janeiro; elaborar devolutiva técnica/orientação oficial à unidade piloto; manter o uso do checklist padronizado para análise das fichas de fevereiro" },
+            { "MÊS": "fevereiro 2026", "FASE": "DO - FAZER", "ETAPAS IMPORTANTES": "Aplicação do checklist nas fichas recebidas; envio de orientação técnica à unidade piloto; registro padronizado das falhas identificadas", "PONTOS CHAVE": "Padronizar a análise entre os avaliadores; monitorar a resposta da unidade às orientações; verificar permanência ou redução das falhas", "PLANEJAMENTO": "Analisar a amostra definida de fichas de fevereiro; classificar as fichas em conformes e não conformes; registrar os campos ausentes e consolidar os dados em planilha de monitoramento" },
+            { "MÊS": "fevereiro 2026", "FASE": "STUDY - ANALISAR", "ETAPAS IMPORTANTES": "Consolidação e comparação dos dados de janeiro e fevereiro; identificação de melhora, manutenção ou piora dos padrões de falha", "PONTOS CHAVE": "Verificar se houve redução das não conformidades; identificar os campos que permanecem críticos; avaliar impacto na tomada de decisão regulatória", "PLANEJAMENTO": "Na amostra analisada em fevereiro, observou-se conformidade integral nos campos saturação de O2, pressão arterial, frequência cardíaca, justificativa clínica para regulação e evolução clínica diária atualizada, todos presentes em 4 de 4 fichas. Houve preenchimento parcial dos campos história clínica completa, início dos sintomas, caracterização da dor torácica, valores das enzimas cardíacas e padronização e objetividade da ficha, presentes em 3 de 4 fichas. Os campos exame físico cardiovascular, ausculta cardíaca registrada, exame pulmonar/ausculta, ECG anexado ou laudo descrito e ECG com data e hora constaram em 2 de 4 fichas. Permaneceram como principais fragilidades os campos enzimas cardíacas seriadas e ECG seriado, ausentes em 100% da amostra analisada. Os achados demonstram melhora na presença das informações clínicas básicas, porém persistem não conformidades relevantes nos exames complementares e no detalhamento do exame físico, com potencial impacto na segurança da decisão regulatória e no tempo de resposta" },
+            { "MÊS": "fevereiro 2026", "FASE": "ACT - AGIR", "ETAPAS IMPORTANTES": "Definição das ações corretivas seguintes; reforço das orientações técnicas; preparação do próximo ciclo", "PONTOS CHAVE": "Sustentar as melhorias alcançadas; atuar sobre as causas persistentes; aprimorar o processo regulatório", "PLANEJAMENTO": "Manter a devolutiva estruturada à unidade piloto; reforçar a orientação sobre os campos ainda incompletos, especialmente enzimas cardíacas seriadas, ECG seriado, ECG com data e hora e exame físico; avaliar necessidade de padronização adicional da ficha; iniciar novo ciclo PDSA com foco nos itens mais críticos" },
+            { "MÊS": "Março de 2026", "FASE": "PLAN - PLANEJAR", "ETAPAS IMPORTANTES": "Definição do HETRIN como unidade piloto; avaliação inicial da qualidade das fichas de regulação de pacientes com IAM; definição dos critérios mínimos de completude; estruturação de canal de comunicação mais ágil com a unidade", "PONTOS CHAVE": "Garantir informações clínicas essenciais para decisão regulatória segura; reduzir pendências e retrabalho; qualificar o tempo de resposta; fortalecer a comunicação entre a regulação e a unidade piloto", "PLANEJAMENTO": "Avaliar, por meio de checklist padronizado, as fichas de regulação oriundas do HETRIN quanto aos campos clínicos e regulatórios essenciais. Planejar, ainda, a criação de grupo em aplicativo de mensagens instantâneas para facilitar a comunicação direta, o alinhamento de orientações e o acompanhamento oportuno das pendências identificadas." },
+            { "MÊS": "Março de 2026", "FASE": "DO - FAZER", "ETAPAS IMPORTANTES": "Aplicação do checklist nas fichas analisadas; consolidação da amostra da unidade piloto; classificação das fichas em conformes e não conformes; criação de grupo de mensagens instantâneas com os profissionais envolvidos", "PONTOS CHAVE": "Utilizar instrumento único de avaliação; registrar falhas por campo; identificar padrão de incompletude documental; promover comunicação rápida e funcional entre os envolvidos", "PLANEJAMENTO": "Analisar as 15 fichas da unidade piloto HETRIN referentes ao período de agosto a dezembro de 2025; classificar cada critério como “sim” ou “não”; consolidar os resultados em planilha de monitoramento da qualidade da ficha; instituir grupo de mensagens instantâneas para compartilhamento célere de orientações, esclarecimento de dúvidas e acompanhamento das inconformidades identificadas." },
+            { "MÊS": "Março de 2026", "FASE": "STUDY - ANALISAR", "ETAPAS IMPORTANTES": "Consolidação dos dados coletados; análise dos padrões de falha; identificação dos principais gargalos; avaliação do apoio da comunicação rápida no acompanhamento das demandas", "PONTOS CHAVE": "Verificar os campos mais frequentemente ausentes; avaliar impacto potencial das falhas na segurança da decisão regulatória; reconhecer a importância da comunicação oportuna para redução de ruídos e maior celeridade nas tratativas", "PLANEJAMENTO": "Na amostra de 15 fichas do HETRIN, observou-se conformidade integral nos campos história clínica completa, ausculta cardíaca registrada, saturação de O₂, pressão arterial, frequência cardíaca, justificativa clínica para regulação e padronização e objetividade da ficha, todos presentes em 100% das fichas analisadas. Os campos exame pulmonar/ausculta, ECG com data e hora e evolução clínica diária atualizada apresentaram 14 de 15 registros conformes (93,3%). Caracterização da dor torácica e ECG anexado ou laudo descrito constaram em 13 de 15 fichas (86,7%). Início dos sintomas, exame físico cardiovascular e valores das enzimas cardíacas apareceram em 12 de 15 fichas (80,0%). O ECG seriado foi identificado em 11 de 15 fichas (73,3%). O principal ponto crítico foi o campo enzimas cardíacas seriadas, presente em apenas 5 de 15 fichas (33,3%). Observou-se, ainda, que a criação do grupo de mensagens instantâneas favoreceu comunicação mais rápida entre os envolvidos, permitindo maior agilidade no alinhamento de orientações e no acompanhamento das pendências." },
+            { "MÊS": "- Março de 2026", "FASE": "ACT - AGIR", "ETAPAS IMPORTANTES": "Definição das ações corretivas iniciais; devolutiva à unidade piloto; manutenção do canal de comunicação ágil; preparação do próximo ciclo", "PONTOS CHAVE": "Atuar sobre os campos críticos; reforçar a qualidade do preenchimento; sustentar melhoria progressiva; consolidar comunicação rápida como ferramenta de apoio ao processo regulatório", "PLANEJAMENTO": "Encaminhar devolutiva técnica ao HETRIN com destaque para os campos mais frágeis, especialmente enzimas cardíacas seriadas, ECG seriado, início dos sintomas, exame físico cardiovascular e valores das enzimas cardíacas; reforçar a orientação quanto ao preenchimento completo e padronizado da ficha; manter o grupo de mensagens instantâneas como canal de comunicação rápida para alinhamento contínuo e acompanhamento das melhorias; prosseguir com novo ciclo de monitoramento para verificar a evolução dos resultados após a intervenção." }
+        ];
+
+        function cleanData(data) {
+            return data.map(item => {
+                const cleanedItem = { ...item };
+                // Limpa e padroniza o nome do mês
+                if (cleanedItem['MÊS']) {
+                    cleanedItem['MÊS'] = cleanedItem['MÊS'].replace(/(- |Primeiro - |Segundo -|Segundo  -)/g, '').trim();
+                }
+                // Limpa e padroniza a fase
+                if (cleanedItem['FASE']) {
+                    cleanedItem['FASE'] = cleanedItem['FASE'].replace(/–/g, '-').replace(/\s+/g, ' ').trim();
+                }
+                return cleanedItem;
+            });
+        }
+
+        const cleanedProjectData = cleanData(projectData);
+
+        function populateFilters() {
+            const monthFilter = document.getElementById('monthFilter');
+            const phaseFilter = document.getElementById('phaseFilter');
+
+            const months = [...new Set(cleanedProjectData.map(item => item['MÊS']))];
+            const phases = [...new Set(cleanedProjectData.map(item => item['FASE']))];
+
+            months.forEach(month => {
+                const option = document.createElement('option');
+                option.value = month;
+                option.textContent = month;
+                monthFilter.appendChild(option);
+            });
+
+            phases.forEach(phase => {
+                const option = document.createElement('option');
+                option.value = phase;
+                option.textContent = phase;
+                phaseFilter.appendChild(option);
+            });
+        }
+
+        function createCard(item) {
+            const card = document.createElement('div');
+            card.className = 'pdsa-card';
+            card.dataset.month = item['MÊS'];
+            card.dataset.phase = item['FASE'];
+
+            const formatContent = (text) => text.replace(/- /g, '<li>').replace(/\n/g, '');
+
+            card.innerHTML = `
+                <div class="card-header">
+                    <h2>${item['FASE']}</h2>
+                    <p class="month-tag">${item['MÊS']}</p>
+                </div>
+                <div class="card-body">
+                    <div class="card-section">
+                        <h3>Etapas Importantes</h3>
+                        <ul>${formatContent(item['ETAPAS IMPORTANTES'] || 'N/A')}</ul>
+                    </div>
+                    <div class="card-section">
+                        <h3>Pontos-Chave</h3>
+                        <ul>${formatContent(item['PONTOS CHAVE'] || 'N/A')}</ul>
+                    </div>
+                    <div class="card-section">
+                        <h3>Planejamento / Detalhes</h3>
+                        <ul>${formatContent(item['PLANEJAMENTO'] || 'N/A')}</ul>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function renderCards() {
+            const board = document.getElementById('project-board');
+            board.innerHTML = ''; // Limpa o painel
+            cleanedProjectData.forEach(item => {
+                const card = createCard(item);
+                board.appendChild(card);
+            });
+            filterCards(); // Aplica o filtro inicial
+        }
+
+        function filterCards() {
+            const selectedMonth = document.getElementById('monthFilter').value;
+            const selectedPhase = document.getElementById('phaseFilter').value;
+            const cards = document.querySelectorAll('.pdsa-card');
+            const board = document.getElementById('project-board');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const monthMatch = (selectedMonth === 'ALL') || (card.dataset.month === selectedMonth);
+                const phaseMatch = (selectedPhase === 'ALL') || (card.dataset.phase === selectedPhase);
+
+                if (monthMatch && phaseMatch) {
+                    card.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Remove mensagem 'sem resultados' se existir
+            const noResultsMsg = board.querySelector('.no-results');
+            if (noResultsMsg) {
+                noResultsMsg.remove();
+            }
+
+            // Adiciona mensagem se nenhum card estiver visível
+            if (visibleCount === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'no-results';
+                noResults.textContent = 'Nenhum registro encontrado para os filtros selecionados.';
+                board.appendChild(noResults);
+            }
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            populateFilters();
+            renderCards();
+        });
+    </script>
+</body>
+</html>
